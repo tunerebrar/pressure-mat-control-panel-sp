@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pressure Mat</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            user-select: none;
+        }
+        
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;}
+        .brand { font-size: 1.2em; font-weight: bold; color: #fff; letter-spacing: 1px;}
+        .battery { font-size: 1em; color: #888; font-weight: bold;}
+        
+        /* CONNECT BUTTON */
+        #connectBtn {
+            background: linear-gradient(135deg, #3B8ED0, #2A6F9E);
+            color: white;
+            border: none;
+            padding: 18px 0;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            width: 100%;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(59, 142, 208, 0.4);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #connectBtn:active { transform: scale(0.98); }
+        
+        /* STATUS CARD */
+        #statusCard {
+            background-color: #1E1E1E;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+            position: relative; /* Needed for absolute positioning */
+            min-height: 120px;  /* Ensure space for centering */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Vertical Center */
+            align-items: center;     /* Horizontal Center */
+        }
+        
+        /* Status Label (Top Left) */
+        #statusTitle { 
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 0.8em; 
+            color: #888; 
+            letter-spacing: 1px; 
+            font-weight: bold; 
+        }
+        
+        /* Mute Badge (Top Right) */
+        #muteIndicator { 
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 0.7em; 
+            color: #D32F2F;        
+            background: #FFFFFF;   
+            font-weight: bold; 
+            padding: 4px 8px; 
+            border-radius: 10px;
+            display: none; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* The Big Text (Centered) */
+        #statusText { 
+            font-size: 1.8em; 
+            font-weight: 800; 
+            color: #fff; 
+            margin-top: 15px; /* Push down slightly to clear headers */
+            text-align: center;
+            width: 100%;
+        }
+        
+        /* The Moving+Mute Warning (Centered Below Text) */
+        #movingMuteAlert {
+            display: none; 
+            margin-top: 10px;
+            color: #D32F2F;      
+            background: #FFFFFF; 
+            font-weight: bold;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            animation: popIn 0.3s ease;
+        }
+
+        /* BARS */
+        .bars-container { background-color: #1E1E1E; border-radius: 16px; padding: 20px; border: 1px solid #333; }
+        .bar-row { display: flex; align-items: center; margin-bottom: 12px; }
+        .bar-label { width: 80px; font-size: 0.8em; color: #aaa; text-align: left; }
+        .bar-track { flex-grow: 1; height: 12px; background-color: #333; border-radius: 6px; overflow: hidden; margin: 0 10px; }
+        .bar-fill { height: 100%; width: 0%; background-color: #3B8ED0; transition: width 0.3s, background-color 0.3s; }
+        .bar-val { width: 50px; font-size: 0.8em; color: #fff; text-align: right; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="brand">PRESSURE MAT</div>
+        <div id="batVal" class="battery">🔋 --%</div>
+    </div>
+
+    <button id="connectBtn" onclick="initiateConnection()">🔵 CONNECT DEVICE</button>
+
+    <div id="statusCard">
+        <div id="statusTitle">STATUS</div>
+        <div id="muteIndicator">🔇 MUTED</div>
+        
+        <div id="statusText">DISCONNECTED</div>
+        <div id="movingMuteAlert">⚠️ ALARMS SILENCED</div>
+    </div>
+
+    <div class="bars-container">
+        <div class="bar-row">
+            <div class="bar-label">Left</div>
+            <div class="bar-track"><div id="bar1" class="bar-fill"></div></div>
+            <div id="val1" class="bar-val">0</div>
+        </div>
+        <div class="bar-row">
+            <div class="bar-label">Right</div>
+            <div class="bar-track"><div id="bar2" class="bar-fill"></div></div>
+            <div id="val2" class="bar-val">0</div>
+        </div>
+        <div class="bar-row">
+            <div class="bar-label">Bottom</div>
+            <div class="bar-track"><div id="bar3" class="bar-fill"></div></div>
+            <div id="val3" class="bar-val">0</div>
+        </div>
+    </div>
+
+    <script>
+        const serviceUuid = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const charUuid = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        
+        let device, server, characteristic;
+        let isReconnecting = false;
+
+        async function initiateConnection() {
+            try {
+                setStatus("SEARCHING...", "#fff", "#1E1E1E");
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: "Pressure Mat" }],
+                    optionalServices: [serviceUuid]
+                });
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+                await connectToDevice();
+            } catch (error) {
+                console.log(error);
+                setStatus("FAILED", "#FF5555", "#1E1E1E");
+            }
+        }
+
+        async function connectToDevice() {
+            try {
+                server = await device.gatt.connect();
+                let service = await server.getPrimaryService(serviceUuid);
+                characteristic = await service.getCharacteristic(charUuid);
+                await characteristic.startNotifications();
+                characteristic.addEventListener('characteristicvaluechanged', handleData);
+
+                document.getElementById("connectBtn").style.display = "none";
+                setStatus("ACTIVE", "#4CAF50", "#1E1E1E");
+                isReconnecting = false;
+            } catch (error) {
+                console.log("Connection Error", error);
+                onDisconnected();
+            }
+        }
+
+        function onDisconnected() {
+            if (isReconnecting) return;
+            isReconnecting = true;
+            setStatus("RECONNECTING...", "#FFCC00", "#1E1E1E");
+            
+            let retry = setInterval(async () => {
+                if (!device) { clearInterval(retry); return; }
+                if (device.gatt.connected) {
+                    clearInterval(retry);
+                    isReconnecting = false;
+                    setStatus("ACTIVE", "#4CAF50", "#1E1E1E");
+                    return;
+                }
+                try { await connectToDevice(); } catch(e){}
+            }, 2000);
+        }
+
+        function handleData(event) {
+            const value = new TextDecoder().decode(event.target.value);
+            const parts = value.split(',');
+            if (parts.length >= 9) { // 3 Sensors + Accel + Status + Mute + Bat
+                updateUI(
+                    parseFloat(parts[0]), parseFloat(parts[1]), parseFloat(parts[2]), 
+                    parseFloat(parts[3]), parseFloat(parts[4]), parseFloat(parts[5]), 
+                    parseInt(parts[6]), parseInt(parts[7]), parseInt(parts[8]) 
+                );
+            }
+        }
+
+        function updateUI(pLeft, pRight, pBottom, ax, ay, az, status, muted, bat) {
+            const batEl = document.getElementById("batVal");
+            batEl.innerText = "🔋 " + bat + "%";
+            batEl.style.color = bat < 20 ? "#FF5555" : "#888";
+
+            const muteEl = document.getElementById("muteIndicator");
+            if (muted == 1) {
+                muteEl.style.display = "block"; 
+            } else {
+                muteEl.style.display = "none";
+            }
+
+            if (status == 3) {
+                setStatus("SLEEP MODE", "#888", "#1E1E1E"); 
+            } else if (status == 2) { 
+                setStatus("POTENTIAL SEIZURE DETECTED", "#FFF", "#D32F2F"); 
+                navigator.vibrate([500, 200, 500]); 
+            } else if (status == 1) { 
+                setStatus("PATIENT MOVING", "#000", "#FFC107"); 
+            } else { 
+                setStatus("ACTIVE", "#4CAF50", "#1E1E1E"); 
+            }
+
+            const movingMuteAlert = document.getElementById("movingMuteAlert");
+            if (status == 1 && muted == 1) {
+                movingMuteAlert.style.display = "block";
+            } else {
+                movingMuteAlert.style.display = "none";
+            }
+
+            setBar("bar1", "val1", pLeft);
+            setBar("bar2", "val2", pRight);
+            setBar("bar3", "val3", pBottom);
+        }
+
+        function setBar(barId, txtId, val) {
+            let pct = Math.min((val / 60.0) * 100, 100);
+            document.getElementById(barId).style.width = pct + "%";
+            document.getElementById(txtId).innerText = val.toFixed(1);
+            
+            let color = "#3B8ED0"; 
+            if (val > 32.0) color = "#FF5555"; 
+            document.getElementById(barId).style.backgroundColor = color;
+        }
+
+        function setStatus(text, textColor, bgColor) {
+            const card = document.getElementById("statusCard");
+            const txt = document.getElementById("statusText");
+            const title = document.getElementById("statusTitle");
+            
+            txt.innerText = text;
+            txt.style.color = textColor;
+            card.style.backgroundColor = bgColor;
+            
+            if (bgColor === "#FFC107") { 
+                title.style.color = "#000"; 
+            } else {
+                title.style.color = "#888"; 
+            }
+            
+            if (bgColor === "#D32F2F") {
+                card.style.animation = "pulse 1s infinite";
+            } else {
+                card.style.animation = "none";
+            }
+        }
+    </script>
+</body>
+</html>

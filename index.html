@@ -37,7 +37,7 @@
         }
         #connectBtn:active { transform: scale(0.98); }
         
-        /* STATUS CARD (Centered Layout) */
+        /* STATUS CARD */
         #statusCard {
             background-color: #1E1E1E;
             border-radius: 16px;
@@ -53,7 +53,6 @@
             align-items: center;
         }
         
-        /* HEADERS (Absolute Position) */
         #statusTitle { 
             position: absolute;
             top: 15px;
@@ -78,7 +77,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        /* CENTERED TEXT */
         #statusText { 
             font-size: 1.8em; 
             font-weight: 800; 
@@ -88,7 +86,6 @@
             width: 100%;
         }
         
-        /* ALERT BOX */
         #movingMuteAlert {
             display: none; 
             margin-top: 10px;
@@ -102,7 +99,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* BARS */
         .bars-container { background-color: #1E1E1E; border-radius: 16px; padding: 20px; border: 1px solid #333; }
         .bar-row { display: flex; align-items: center; margin-bottom: 12px; }
         .bar-label { width: 80px; font-size: 0.8em; color: #aaa; text-align: left; }
@@ -129,7 +125,6 @@
     <div id="statusCard">
         <div id="statusTitle">POSITION</div>
         <div id="muteIndicator">🔇 MUTED</div>
-        
         <div id="statusText">DISCONNECTED</div>
         <div id="movingMuteAlert">⚠️ ALARMS SILENCED</div>
     </div>
@@ -225,19 +220,18 @@
             batEl.innerText = "🔋 " + bat + "%";
             batEl.style.color = bat < 20 ? "#FF5555" : "#888";
 
-            // MUTE INDICATOR
             const muteEl = document.getElementById("muteIndicator");
             if (muted == 1) muteEl.style.display = "block"; 
             else muteEl.style.display = "none";
 
-            // CALCULATE POSTURE (Medical Terminology Updated)
-            let postureText = "UNKNOWN";
-            if (az > 4.0) postureText = "SUPINE";      
-            else if (az < -4.0) postureText = "PRONE"; 
-            else if (ax < -4.0) postureText = "LEFT LATERAL";  // Changed
-            else if (ax > 4.0) postureText = "RIGHT LATERAL"; // Changed
-            else if (ay > 4.0) postureText = "SITTING UP";
-            else postureText = "ACTIVE"; 
+            // CUSTOM ACCELEROMETER REMAPPING
+            let postureText = "ACTIVE"; 
+            
+            if (ax > 4.0) postureText = "SUPINE";       // Was Right Lateral
+            else if (ay > 4.0) postureText = "RIGHT LATERAL"; // Was Sitting Up
+            else if (az > 4.0) postureText = "SITTING UP";    // Was Supine
+            else if (ax < -4.0) postureText = "PRONE";      // Was Left Lateral
+            else postureText = "ACTIVE";                   // Left Lateral orientation = Active
 
             // PRIORITY STATUS LOGIC
             if (status == 3) {
@@ -251,7 +245,6 @@
                 setStatus(postureText, "#4CAF50", "#1E1E1E"); 
             }
 
-            // MOVING + MUTE ALERT
             const movingMuteAlert = document.getElementById("movingMuteAlert");
             if (status == 1 && muted == 1) {
                 movingMuteAlert.style.display = "block";

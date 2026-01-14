@@ -226,14 +226,24 @@
             if (muted == 1) muteEl.style.display = "block"; 
             else muteEl.style.display = "none";
 
-            // POSTURE LOGIC
-            let postureText = "ACTIVE"; 
-            if (ax > 4.0) postureText = "SUPINE";
-            else if (ay > 4.0) postureText = "RIGHT LATERAL";
-            else if (az > 4.0) postureText = "SITTING UP";
-            else if (ax < -4.0) postureText = "PRONE";
-            else postureText = "ACTIVE";
+            // FULL 6-AXIS ORIENTATION LOGIC
+let postureText = "ACTIVE"; 
 
+if (ax > 4.0) {
+    postureText = "SUPINE";          // Gravity on +X
+} else if (ax < -4.0) {
+    postureText = "PRONE";           // Gravity on -X
+} else if (ay > 4.0) {
+    postureText = "RIGHT LATERAL";   // Gravity on +Y
+} else if (ay < -4.0) {
+    postureText = "LEFT LATERAL";    // Gravity on -Y (NEW)
+} else if (az > 4.0) {
+    postureText = "SITTING UP";      // Gravity on +Z
+} else if (az < -4.0) {
+    postureText = "UPSIDE-DOWN";     // Gravity on -Z (NEW)
+} else {
+    postureText = "ACTIVE";          // Transitional movement
+}
             // PRIORITY STATUS LOGIC
             if (status == 3) {
                 setStatus("SLEEP MODE", "#888", "#1E1E1E"); 

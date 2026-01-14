@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pressure Mat</title>
+    <title>Pressure Mat - Iztech Edition</title>
     <style>
         body {
             background-color: #121212;
@@ -150,6 +150,8 @@
     <script>
         const serviceUuid = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
         const charUuid = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CEILING_VALUE = 35.0; // Updated to match your final calibration
+        const ALARM_THRESHOLD = 32.0;
         
         let device, server, characteristic;
         let isReconnecting = false;
@@ -224,21 +226,20 @@
             if (muted == 1) muteEl.style.display = "block"; 
             else muteEl.style.display = "none";
 
-            // CUSTOM ACCELEROMETER REMAPPING
+            // POSTURE LOGIC
             let postureText = "ACTIVE"; 
-            
-            if (ax > 4.0) postureText = "SUPINE";       // Was Right Lateral
-            else if (ay > 4.0) postureText = "RIGHT LATERAL"; // Was Sitting Up
-            else if (az > 4.0) postureText = "SITTING UP";    // Was Supine
-            else if (ax < -4.0) postureText = "PRONE";      // Was Left Lateral
-            else postureText = "ACTIVE";                   // Left Lateral orientation = Active
+            if (ax > 4.0) postureText = "SUPINE";
+            else if (ay > 4.0) postureText = "RIGHT LATERAL";
+            else if (az > 4.0) postureText = "SITTING UP";
+            else if (ax < -4.0) postureText = "PRONE";
+            else postureText = "ACTIVE";
 
             // PRIORITY STATUS LOGIC
             if (status == 3) {
                 setStatus("SLEEP MODE", "#888", "#1E1E1E"); 
             } else if (status == 2) { 
                 setStatus("SEIZURE DETECTED", "#FFF", "#D32F2F"); 
-                navigator.vibrate([500, 200, 500]); 
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]); 
             } else if (status == 1) { 
                 setStatus("PATIENT MOVING", "#000", "#FFC107"); 
             } else { 
@@ -258,12 +259,14 @@
         }
 
         function setBar(barId, txtId, val) {
-            let pct = Math.min((val / 60.0) * 100, 100);
+            // Updated divisor to 35.0 so ceiling value = 100% width
+            let pct = Math.min((val / CEILING_VALUE) * 100, 100);
             document.getElementById(barId).style.width = pct + "%";
             document.getElementById(txtId).innerText = val.toFixed(1);
             
+            // Color logic based on clinical threshold (32 mmHg)
             let color = "#3B8ED0"; 
-            if (val > 32.0) color = "#FF5555"; 
+            if (val >= ALARM_THRESHOLD) color = "#FF5555"; 
             document.getElementById(barId).style.backgroundColor = color;
         }
 
